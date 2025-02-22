@@ -28,6 +28,17 @@
         .content-container {
             max-width: 90%;
             width: 600px;
+            position: relative;
+        }
+        .blackout {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            z-index: 99999;
+            display: none;
         }
         .watermark {
             position: fixed;
@@ -54,54 +65,73 @@
             background-color: #666;
         }
     </style>
-    <script>
-        document.addEventListener("contextmenu", (event) => event.preventDefault());
-        document.addEventListener("keydown", function(event) {
-            if (event.key === "PrintScreen") {
-                event.preventDefault();
-                alert("Screenshots are disabled!");
-            }
-        });
-        document.addEventListener("keydown", function(event) {
-            if (event.ctrlKey && (event.key === 'u' || event.key === 'i' || event.key === 'j' || event.key === 's' || event.key === 'p' || event.key === 'c')) {
-                event.preventDefault();
-            }
-            if (event.keyCode === 123) {
-                event.preventDefault();
-            }
-        });
-        document.addEventListener("dragstart", (event) => event.preventDefault());
-        document.addEventListener("selectstart", (event) => event.preventDefault());
-        async function detectScreenSharing() {
-            try {
-                await navigator.mediaDevices.getDisplayMedia({ video: true });
-                alert("Screen sharing detected!");
-            } catch (err) {
-                console.log("Screen sharing blocked or not in use.");
-            }
-        }
-        document.addEventListener("DOMContentLoaded", () => {
-            const videos = document.querySelectorAll("video");
-            videos.forEach(video => {
-                video.setAttribute("controlsList", "nodownload nofullscreen");
-                video.addEventListener("contextmenu", (event) => event.preventDefault());
-            });
-        });
-    </script>
 </head>
 <body>
     <div class="content-container">
         <h1>Protected Content</h1>
-        <p>Try to take a screenshot, download this image, or record the screen!</p>
-        <img src="./img.png" alt="Protected Image">
+        <p>Try to take a screenshot, record, or share the screen!</p>
+        <img src="img.png" alt="Protected Image">
         <br><br>
-        <video width="100%" controls>
-            <source src="./video.mp4" type="video/mp4">
+        <video width="100%" controls id="protected-video">
+            <source src="video.mp4" type="video/mp4">
             Your browser does not support the video tag.
         </video>
         <br><br>
         <button onclick="detectScreenSharing()">Check for Screen Sharing</button>
     </div>
+    <div class="blackout" id="blackout"></div>
     <div class="watermark">Protected Content</div>
+
+    <script>
+        // Prevent screenshots
+        document.addEventListener("keydown", function(event) {
+            if (event.key === "PrintScreen") {
+                event.preventDefault();
+                document.getElementById("blackout").style.display = "block";
+                setTimeout(() => {
+                    document.getElementById("blackout").style.display = "none";
+                }, 2000);
+            }
+        });
+
+        // Disable right-click
+        document.addEventListener("contextmenu", (event) => event.preventDefault());
+
+        // Prevent Inspect Element
+        document.addEventListener("keydown", function(event) {
+            if (event.ctrlKey && (event.key === 'u' || event.key === 'i' || event.key === 'j' || event.key === 's' || event.key === 'p' || event.key === 'c')) {
+                event.preventDefault();
+            }
+            if (event.keyCode === 123) { // F12 Key
+                event.preventDefault();
+            }
+        });
+
+        // Prevent drag and selection
+        document.addEventListener("dragstart", (event) => event.preventDefault());
+        document.addEventListener("selectstart", (event) => event.preventDefault());
+
+        // Detect screen sharing
+        async function detectScreenSharing() {
+            try {
+                await navigator.mediaDevices.getDisplayMedia({ video: true });
+                document.getElementById("blackout").style.display = "block";
+            } catch (err) {
+                console.log("Screen sharing blocked or not in use.");
+            }
+        }
+
+        // Black screen when recording
+        let recorderInterval = setInterval(() => {
+            if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+                navigator.mediaDevices.enumerateDevices().then(devices => {
+                    let screenCameras = devices.filter(device => device.kind === "videoinput" && device.label.includes("Screen"));
+                    if (screenCameras.length > 0) {
+                        document.getElementById("blackout").style.display = "block";
+                    }
+                });
+            }
+        }, 3000);
+    </script>
 </body>
 </html>
